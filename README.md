@@ -1,109 +1,174 @@
-# 🎟️ Sistema de Tickets - Curso Miembros Nivel Oro
 
-Bienvenido al proyecto del curso **Sistema de Tickets** desarrollado con Laravel 12, Inertia y React.  
-Este código es exclusivo para los miembros **Nivel Oro** del canal.
-Se añade la Feature: Roles y Permisos con la librería Spatie Laravel Permission.
-
----
-
-## ✅ Requisitos
-
-Antes de empezar, asegurate de tener instalado en tu PC:
-
-- PHP >= 8.2
-- Composer
-- Node.js y npm
-- MySQL o MariaDB (u otro sistema compatible)
-- Extensiones PHP necesarias (pdo, mbstring, etc.)
+# VENDRA  
+### Sistema de Gestión de Ventas para Comercios  
+**Producto del ecosistema AIR SISTEMAS**
 
 ---
 
-## ⚙️ Instalación
+## 🧩 ¿Qué es VENDRA?
 
-### 1. **Descomprimir el archivo ZIP**
+**VENDRA** es una plataforma **SaaS (Software as a Service)** orientada a comercios y emprendedores, diseñada para centralizar y simplificar la **gestión de ventas**, **productos**, **clientes**, **stock**, **usuarios** y **suscripciones**, todo desde un único sistema.
 
-Una vez descargado, descomprimí el archivo `curso-tickets-rolesypermisos.zip` en una carpeta de tu preferencia.
+Forma parte del ecosistema de aplicaciones de **AIR SISTEMAS**, con foco en soluciones reales para negocios de la provincia de Formosa, con proyección de crecimiento regional.
 
-### 2. **Entrar a la carpeta del proyecto**
+VENDRA no es un proyecto académico ni de demostración: es un **producto en desarrollo activo**, pensado para uso comercial real.
 
-Desde la terminal, navega a la carpeta del proyecto:
+---
 
-cd curso-tickets
+## 🎯 Objetivo del producto
 
+- Brindar a los comercios una herramienta simple, moderna y accesible.
+- Permitir gestionar ventas y stock sin conocimientos técnicos.
+- Ofrecer un modelo **freemium**, con planes escalables según el crecimiento del negocio.
+- Centralizar múltiples comercios en un único sistema, manteniendo **aislamiento total de datos**.
 
-### 3. **Instalar dependencias de PHP**
+---
 
-Ejecuta el siguiente comando para instalar las dependencias de PHP:
+## 🧠 Modelo SaaS – Multi‑Cliente
 
-composer install
+VENDRA está construido bajo un modelo **multi‑cliente (multi‑tenant)**:
 
-### 4. **Copiar archivo de entorno y generar clave**
+- Un mismo sistema es utilizado por múltiples comercios.
+- Cada comercio se representa como un **Negocio**.
+- Todas las entidades operativas se asocian a un `negocio_id`.
+- El sistema filtra y valida los datos por negocio para evitar cruces de información.
 
-Copia el archivo de configuración `.env.example` a `.env` y genera la clave de aplicación de Laravel:
+👉 Un comerciante **nunca puede ver ni modificar datos de otro comercio**.
 
-cp .env.example .env
-php artisan key:generate
+---
 
+## 👥 Usuarios y Negocios
 
-### 5. **Configurar la base de datos**
+- Un **Negocio** puede tener **varios usuarios** (dueño, empleados, vendedores).
+- Un **Usuario** puede pertenecer a uno o más negocios.
+- La relación se gestiona mediante una **tabla pivote** (`negocio_user`).
+- Los permisos se controlan mediante **roles globales** y **roles internos por negocio**.
 
-Abre el archivo `.env` y configura la conexión a la base de datos. Por ejemplo, si usas MySQL, el archivo debería verse así:
+Esto permite escalar el sistema a:
+- equipos de trabajo
+- múltiples puntos de venta
+- futuras cadenas de comercios
 
+---
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=curso_tickets
-DB_USERNAME=root
-DB_PASSWORD=
+## 📦 Módulos principales
 
+### 🏪 Negocios
+Datos del comercio, rubro, estado, imagen y configuración general.
 
-Luego, asegurate de crear la base de datos `curso_tickets` en tu sistema (puedes hacerlo desde phpMyAdmin, MySQL Workbench, o con consola).
+### 📂 Categorías
+Organización de productos por rubro o tipo.
+Soporta categorías propias del negocio y categorías globales.
 
-### 6. **Ejecutar migraciones y seeders**
+### 🛒 Productos
+Gestión de precios, stock, estado y relación con categorías.
 
-Esto creará las tablas necesarias y cargará algunos datos de prueba:
+### 👤 Clientes
+Registro de clientes del comercio con historial de compras.
 
-php artisan migrate --seed
+### 💰 Ventas
+- Ventas con detalle de productos.
+- Métodos de pago múltiples.
+- Estados de pago.
+- Asociación a clientes y vendedores.
 
-### 7. **Instalar dependencias de JavaScript**
+### 📦 Stock
+Control automático de stock mediante movimientos:
+- entradas
+- salidas
+- ajustes
 
-Ejecuta el siguiente comando para instalar las dependencias de JavaScript:
+### 🎟️ Tickets de Soporte
+Sistema interno de soporte para usuarios del sistema:
+- prioridades
+- estados
+- asignación a personal de soporte
 
-npm install
+### 📊 Reportes (módulo derivado)
+- Reportes generados dinámicamente.
+- No duplican datos.
+- Acceso según plan contratado.
 
-### 8. **Ejecutar las tareas de compilación**
+---
 
-Ejecuta el siguiente comando para compilar los archivos de frontend e iniciar el servidor:
+## 💎 Planes y Suscripciones
 
-composer run dev
+VENDRA funciona bajo un esquema **freemium**:
 
+### 🆓 Plan Gratuito
+- Límite de productos
+- Límite de ventas mensuales
+- Reportes básicos
 
-## 🚀 Iniciar el servidor
+### 💎 Plan Premium
+- Productos y ventas ilimitadas
+- Reportes avanzados
+- Página pública del negocio
+- Múltiples puntos de venta
 
-Y abre tu navegador en:
+### 💳 Pagos
+- Sistema de pagos **agnóstico al proveedor**.
+- Soporta MercadoPago, transferencias, pagos manuales u otros.
+- Los datos específicos de cada método se almacenan de forma flexible.
 
-http://localhost:8000
+---
 
-El usuario administrador por defecto, tiene las siguientes credenciales:
-email: admin@example.com
-password: 12345678
+## 🛠️ Stack tecnológico
 
-
-## 🧭 ¿Qué incluye este proyecto?
-
+### Backend
+- PHP 8.2+
 - Laravel 12
-- Inertia.js + React 19
-- CRUD completo de:
-  - Clientes
-  - Técnicos de soporte
-  - Tickets
-- Relaciones entre entidades
-- Eliminación con control de dependencias
-- Flash messages globales
-- Feature Roles y Permisos
-- Estructura limpia para aprender o escalar
+- MySQL / MariaDB
+- Spatie Laravel Permission
 
-## ⚠️ Licencia
+### Frontend
+- React 19
+- Inertia.js
+- Vite
+- Tailwind CSS
+- TypeScript
 
-Este proyecto es exclusivo para uso **educativo**
+### Arquitectura
+- SPA con backend Laravel
+- API interna desacoplada
+- Seguridad por políticas y permisos
+- Diseño escalable y mantenible
+
+---
+
+## 🔐 Seguridad y aislamiento
+
+- Filtros obligatorios por negocio.
+- Validaciones cruzadas para evitar asociaciones inválidas.
+- Control de acceso mediante roles y permisos.
+- Preparado para auditoría y crecimiento.
+
+---
+
+## 🚀 Estado del proyecto
+
+VENDRA se encuentra en **desarrollo activo** como producto comercial.
+Las funcionalidades se implementan de forma progresiva siguiendo un roadmap definido.
+
+Este repositorio refleja la **base técnica del sistema**, no un ejemplo educativo.
+
+---
+
+## 🧭 Visión a futuro
+
+- Multi‑usuarios avanzados por negocio
+- Puntos de venta (cajas)
+- Integraciones fiscales y de pago
+- Panel de métricas
+- Expansión del ecosistema AIR SISTEMAS
+
+---
+
+## 🏢 AIR SISTEMAS
+
+VENDRA es parte del ecosistema **AIR SISTEMAS**, un conjunto de aplicaciones orientadas a digitalizar procesos reales de organizaciones, comercios e instituciones.
+
+---
+
+**VENDRA**  
+Producto desarrollado con visión de negocio, escalabilidad y uso real.
