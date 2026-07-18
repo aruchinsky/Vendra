@@ -233,6 +233,10 @@ export interface Role {
     permissions_count?: number;
 }
 
+export interface UserWithRoles extends User {
+    roles: Role[];
+}
+
 export interface Permission {
     id: number;
     name: string;
@@ -242,7 +246,7 @@ export interface Permission {
    Props Globales de Páginas Inertia
 ========================================================= */
 
-export interface pageProps {
+export interface PageProps {
     flash: {
         success?: string;
         error?: string;
@@ -271,3 +275,6 @@ export interface pageProps {
     search?: string;
     [key: string]: unknown;
 }
+
+/** Alias temporal para imports existentes. */
+export type pageProps = PageProps;
