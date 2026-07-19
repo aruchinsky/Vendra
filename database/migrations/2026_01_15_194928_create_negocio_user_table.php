@@ -4,8 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-    public function up(): void {
+return new class extends Migration
+{
+    public function up(): void
+    {
         Schema::create('negocio_user', function (Blueprint $table) {
             $table->id();
 
@@ -17,20 +19,21 @@ return new class extends Migration {
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            // Rol interno dentro del negocio (independiente de roles globales Spatie)
-            $table->enum('rol_en_negocio', ['owner', 'encargado', 'vendedor'])
-                ->default('vendedor');
-
+            // Distinción técnica mínima para proteger configuración,
+            // suscripción e incorporación de miembros al negocio.
+            $table->boolean('es_administrador')->default(false);
             $table->boolean('activo')->default(true);
 
             $table->timestamps();
 
             $table->unique(['negocio_id', 'user_id']);
-            $table->index(['user_id', 'negocio_id']);
+            $table->index(['user_id', 'activo']);
+            $table->index(['negocio_id', 'es_administrador', 'activo']);
         });
     }
 
-    public function down(): void {
+    public function down(): void
+    {
         Schema::dropIfExists('negocio_user');
     }
 };

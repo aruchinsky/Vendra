@@ -1,252 +1,536 @@
-import { Head, Link, usePage } from "@inertiajs/react"
-import AppLayout from "@/layouts/app-layout"
-import { motion } from "framer-motion"
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem, PageProps, User } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import {
-  Building2,
-  Users,
-  Package,
-  ShoppingCart,
-  CreditCard,
-  DollarSign,
-  Layers,
-  Settings,
-  BarChart3,
-  ShieldCheck,
-  Sparkles,
-  Database,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { PlaceholderPattern } from "@/components/ui/placeholder-pattern"
-import { Badge } from "@/components/ui/badge"
-import { type BreadcrumbItem, type pageProps } from "@/types"
+    Activity,
+    ArrowUpRight,
+    Building2,
+    CircleDollarSign,
+    CreditCard,
+    Database,
+    Headphones,
+    Layers3,
+    Package,
+    ReceiptText,
+    ShieldCheck,
+    ShoppingCart,
+    Sparkles,
+    Users,
+} from 'lucide-react';
+import {
+    Area,
+    AreaChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: "Dashboard", href: "/dashboard" }]
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Centro de control', href: '/dashboard' }];
+
+interface AdminStats {
+    usuariosTotales: number;
+    usuariosActivos: number;
+    negociosTotales: number;
+    negociosActivos: number;
+    productosTotales: number;
+    ventasTotales: number;
+    clientesTotales: number;
+    planesActivos: number;
+    ticketsAbiertos: number;
+    pagosPendientes: number;
+    ingresosComercios: number;
+    ingresosSuscripciones: number;
+}
+
+interface EvolucionItem {
+    periodo: string;
+    usuarios: number;
+    negocios: number;
+    ventas: number;
+}
+
+interface PlanDistribution {
+    id: number;
+    nombre: string;
+    slug: string;
+    negocios: number;
+}
+
+interface RecentBusiness {
+    id: number;
+    nombre_comercial: string;
+    rubro?: string | null;
+    activo: boolean;
+    created_at: string;
+    usuarios_activos_count: number;
+    plan?: { nombre: string; slug: string } | null;
+}
+
+interface PendingPayment {
+    id: number;
+    monto: number;
+    moneda: string;
+    created_at: string;
+    negocio?: { nombre_comercial: string } | null;
+    plan?: { nombre: string; slug: string } | null;
+}
+
+interface RecentTicket {
+    id: number;
+    asunto: string;
+    prioridad: 'baja' | 'media' | 'alta';
+    estado: 'abierto' | 'en_progreso' | 'cerrado';
+    created_at: string;
+    usuario_nombre?: string | null;
+    usuario_apellido?: string | null;
+}
+
+type Props = PageProps & {
+    user: User;
+    stats: AdminStats;
+    evolucion: EvolucionItem[];
+    distribucionPlanes: PlanDistribution[];
+    negociosRecientes: RecentBusiness[];
+    pagosPendientes: PendingPayment[];
+    ticketsRecientes: RecentTicket[];
+};
+
+const currency = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+});
+
+const number = new Intl.NumberFormat('es-AR');
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.05, duration: 0.3 },
-  }),
+    hidden: { opacity: 0, y: 18 },
+    visible: (index: number) => ({
+        opacity: 1,
+        y: 0,
+        transition: { delay: index * 0.045, duration: 0.35 },
+    }),
+};
+
+function statusLabel(status: RecentTicket['estado']) {
+    return status === 'en_progreso' ? 'En progreso' : status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export default function AdministradorDashboard() {
-  const { auth, stats = {} } = usePage<pageProps & { stats: any }>().props
-  const user = auth?.user ?? null
+    const { user, stats, evolucion, distribucionPlanes, negociosRecientes, pagosPendientes, ticketsRecientes } =
+        usePage<Props>().props;
 
-  const statCards = [
-    {
-      label: "Negocios activos",
-      value: stats.negociosActivos ?? 0,
-      icon: Building2,
-      hint: "Total de comercios registrados y activos en la plataforma.",
-    },
-    {
-      label: "Usuarios registrados",
-      value: stats.usuariosTotales ?? 0,
-      icon: Users,
-      hint: "Usuarios con cuentas activas en el sistema.",
-    },
-    {
-      label: "Productos totales",
-      value: stats.productosTotales ?? 0,
-      icon: Package,
-      hint: "Cantidad total de productos registrados en todos los negocios.",
-    },
-    {
-      label: "Ventas registradas",
-      value: stats.ventasTotales ?? 0,
-      icon: ShoppingCart,
-      hint: "Número total de operaciones de venta realizadas.",
-    },
-    {
-      label: "Clientes activos",
-      value: stats.clientesTotales ?? 0,
-      icon: CreditCard,
-      hint: "Clientes registrados en los distintos negocios.",
-    },
-    {
-      label: "Planes activos",
-      value: stats.planesActivos ?? 0,
-      icon: Layers,
-      hint: "Planes disponibles y asignados a los usuarios.",
-    },
-    {
-      label: "Ingresos totales",
-      value: `$${stats.ingresosTotales?.toLocaleString() ?? "0"}`,
-      icon: DollarSign,
-      hint: "Suma total de ingresos generados por las ventas.",
-    },
-  ]
+    const cards = [
+        {
+            label: 'Negocios activos',
+            value: number.format(stats.negociosActivos),
+            detail: `${number.format(stats.negociosTotales)} registrados`,
+            icon: Building2,
+        },
+        {
+            label: 'Usuarios activos',
+            value: number.format(stats.usuariosActivos),
+            detail: `${number.format(stats.usuariosTotales)} cuentas totales`,
+            icon: Users,
+        },
+        {
+            label: 'Ventas procesadas',
+            value: number.format(stats.ventasTotales),
+            detail: currency.format(stats.ingresosComercios),
+            icon: ShoppingCart,
+        },
+        {
+            label: 'Ingresos SaaS',
+            value: currency.format(stats.ingresosSuscripciones),
+            detail: `${stats.pagosPendientes} pagos pendientes`,
+            icon: CircleDollarSign,
+        },
+        {
+            label: 'Productos',
+            value: number.format(stats.productosTotales),
+            detail: `${number.format(stats.clientesTotales)} clientes`,
+            icon: Package,
+        },
+        {
+            label: 'Soporte activo',
+            value: number.format(stats.ticketsAbiertos),
+            detail: 'Tickets abiertos',
+            icon: Headphones,
+        },
+    ];
 
-  const acciones = [
-    {
-      titulo: "Usuarios y Roles",
-      descripcion: "Gestioná cuentas, permisos y niveles de acceso.",
-      icono: Users,
-      href: route("users.index"),
-      color: "from-primary/40 to-primary/20",
-    },
-    {
-      titulo: "Negocios",
-      descripcion: "Supervisá los comercios registrados en Vendra.",
-      icono: Building2,
-      href: route("negocios.index"),
-      color: "from-accent/40 to-accent/20",
-    },
-    {
-      titulo: "Planes",
-      descripcion: "Controlá los planes disponibles y sus características.",
-      icono: Layers,
-      href: route("planes.index"),
-      color: "from-secondary/40 to-secondary/20",
-    },
-    {
-      titulo: "Configuración general",
-      descripcion: "Ajustes globales del sistema y mantenimiento.",
-      icono: Settings,
-      href: "#",
-      color: "from-muted/40 to-muted/20",
-    },
-  ]
+    const modules = [
+        {
+            title: 'Usuarios y roles',
+            description: 'Administrá cuentas globales, accesos y seguridad.',
+            icon: Users,
+            href: route('users.index'),
+        },
+        {
+            title: 'Negocios',
+            description: 'Supervisá comercios, membresías y estado operativo.',
+            icon: Building2,
+            href: route('negocios.index'),
+        },
+        {
+            title: 'Planes',
+            description: 'Definí límites y capacidades de Free y Premium.',
+            icon: Layers3,
+            href: route('planes.index'),
+        },
+        {
+            title: 'Pagos',
+            description: 'Revisá solicitudes y aprobá suscripciones.',
+            icon: CreditCard,
+            href: route('pagos-suscripciones.index'),
+        },
+        {
+            title: 'Tickets',
+            description: 'Observá la operación del equipo de soporte.',
+            icon: Headphones,
+            href: route('tickets.index'),
+        },
+        {
+            title: 'Permisos',
+            description: 'Configurá roles y permisos globales de Vendra.',
+            icon: ShieldCheck,
+            href: route('roles.index'),
+        },
+    ];
 
-  return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Dashboard del Administrador | Vendra" />
+    const maxPlanBusinesses = Math.max(...distribucionPlanes.map((plan) => plan.negocios), 1);
 
-      {/* ===== HERO ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: -15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-background to-secondary/15 p-6 shadow-sm border border-border mx-2 sm:mx-4 md:mx-8"
-      >
-        <div className="relative z-10">
-          <h1 className="text-2xl font-semibold flex items-center gap-2 text-foreground">
-            <Database className="w-6 h-6 text-primary" />
-            Panel de Administración Global
-          </h1>
-          <p className="text-sm mt-1 text-muted-foreground">
-            {user ? (
-              <>
-                Bienvenido, <strong>{user.nombre}</strong>. Desde este panel podés
-                supervisar toda la plataforma, negocios, planes y usuarios activos.
-              </>
-            ) : (
-              "Panel principal del administrador del sistema."
-            )}
-          </p>
-        </div>
-        <motion.div
-          animate={{ opacity: [0.2, 0.4, 0.2], scale: [1, 1.05, 1] }}
-          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-          className="absolute -bottom-12 -right-12 h-44 w-44 rounded-full bg-primary/20 blur-3xl"
-        />
-      </motion.div>
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Centro de control | Vendra" />
 
-      {/* ===== STATS ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 px-2 sm:px-4 md:px-8"
-      >
-        {statCards.map((item, i) => (
-          <motion.div
-            key={item.label}
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            custom={i}
-          >
-            <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300 group relative">
-              <CardContent className="flex items-center gap-3 py-5">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <item.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className="text-lg font-semibold text-foreground">{item.value}</p>
-                </div>
-              </CardContent>
-              <div className="absolute bottom-2 left-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-muted-foreground">
-                {item.hint}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </motion.div>
+            <div className="flex flex-col gap-6 p-4 md:p-6 xl:p-8">
+                <motion.section
+                    initial={{ opacity: 0, y: -14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative overflow-hidden rounded-3xl border bg-card p-6 md:p-8"
+                >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.11),transparent_38%)]" />
+                    <motion.div
+                        animate={{ x: [0, 22, 0], y: [0, -14, 0] }}
+                        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/15 blur-3xl"
+                    />
 
-      {/* ===== ACCIONES PRINCIPALES ===== */}
-      <div className="mt-10 px-2 sm:px-4 md:px-8">
-        <h2 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-primary" /> Módulos principales
-        </h2>
+                    <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-3xl">
+                            <Badge variant="outline" className="mb-4 gap-2 bg-background/70">
+                                <Database className="h-3.5 w-3.5 text-primary" />
+                                Administración global de Vendra
+                            </Badge>
+                            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                                Tu centro de mando, <span className="text-primary">{user.nombre}</span>
+                            </h1>
+                            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+                                Controlá el crecimiento del SaaS, la actividad comercial, las suscripciones y la salud operativa desde una única vista ejecutiva.
+                            </p>
+                        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {acciones.map((op, i) => (
-            <motion.div
-              key={op.titulo}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={i}
-              whileHover={{ scale: 1.02 }}
-            >
-              <Card className="shadow-sm border-border hover:shadow-md transition-all duration-300 h-full flex flex-col justify-between">
-                <CardHeader className="relative pb-1">
-                  <div className={`absolute inset-0 bg-gradient-to-r ${op.color} opacity-[0.08] rounded-t-lg`} />
-                  <div className="relative flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold text-foreground">{op.titulo}</CardTitle>
-                    <div className="p-2 rounded-full bg-muted/50 dark:bg-muted/30">
-                      <op.icono className="h-5 w-5 text-muted-foreground" />
+                        <div className="grid grid-cols-2 gap-3 sm:flex">
+                            <div className="rounded-2xl border bg-background/70 px-4 py-3 backdrop-blur">
+                                <p className="text-xs text-muted-foreground">Planes activos</p>
+                                <p className="mt-1 text-2xl font-semibold">{stats.planesActivos}</p>
+                            </div>
+                            <div className="rounded-2xl border bg-background/70 px-4 py-3 backdrop-blur">
+                                <p className="text-xs text-muted-foreground">Alertas operativas</p>
+                                <p className="mt-1 text-2xl font-semibold text-primary">
+                                    {stats.ticketsAbiertos + stats.pagosPendientes}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </CardHeader>
+                </motion.section>
 
-                <CardContent className="relative z-10 flex flex-col justify-between flex-1 py-3">
-                  <p className="text-sm text-muted-foreground mb-3 leading-snug">{op.descripcion}</p>
-                  <Button asChild size="sm" className="w-full transition-all duration-200 hover:shadow-sm">
-                    <Link href={op.href}>
-                      <Sparkles className="w-4 h-4 mr-1" /> Ingresar
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                    {cards.map((item, index) => (
+                        <motion.div
+                            key={item.label}
+                            custom={index}
+                            variants={fadeUp}
+                            initial="hidden"
+                            animate="visible"
+                        >
+                            <Card className="group h-full overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
+                                <CardContent className="p-5">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="rounded-2xl bg-primary/10 p-3 text-primary transition group-hover:scale-105">
+                                            <item.icon className="h-5 w-5" />
+                                        </div>
+                                        <Activity className="h-4 w-4 text-muted-foreground/50" />
+                                    </div>
+                                    <p className="mt-5 text-sm text-muted-foreground">{item.label}</p>
+                                    <p className="mt-1 text-2xl font-semibold tracking-tight">{item.value}</p>
+                                    <p className="mt-2 text-xs text-muted-foreground">{item.detail}</p>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    ))}
+                </section>
 
-      {/* ===== ACTIVIDAD GENERAL ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="mt-12 mx-2 sm:mx-4 md:mx-8 border border-border rounded-xl p-6 relative overflow-hidden"
-      >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
-          <BarChart3 className="h-5 w-5" />
-          Actividad general del sistema
-        </h2>
-        <PlaceholderPattern className="absolute inset-0 stroke-neutral-900/10 dark:stroke-neutral-100/10 pointer-events-none" />
-        <p className="relative z-10 text-muted-foreground">
-          Aquí se visualizarán los reportes de uso del sistema, ventas globales, negocios nuevos y estadísticas de crecimiento mensual.
-        </p>
-        <div className="relative z-10 mt-6 flex flex-wrap gap-3 text-sm">
-          <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-            🏬 {statCards[0].value} negocios activos
-          </Badge>
-          <Badge className="bg-secondary/10 text-secondary-foreground hover:bg-secondary/20">
-            💰 {statCards[6].value} ingresos totales
-          </Badge>
-          <Badge className="bg-accent/10 text-accent-foreground hover:bg-accent/20">
-            📦 {statCards[2].value} productos registrados
-          </Badge>
-        </div>
-      </motion.div>
-    </AppLayout>
-  )
+                <section className="grid gap-6 xl:grid-cols-[1.65fr_0.85fr]">
+                    <Card className="overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between gap-4">
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-primary" />
+                                    Evolución de la plataforma
+                                </CardTitle>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Altas de usuarios, nuevos negocios y volumen de ventas de los últimos seis meses.
+                                </p>
+                            </div>
+                            <Badge variant="secondary">Tiempo real</Badge>
+                        </CardHeader>
+                        <CardContent className="h-[330px] pt-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={evolucion} margin={{ left: -16, right: 8, top: 12 }}>
+                                    <defs>
+                                        <linearGradient id="ventasAdmin" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} />
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="4 4" opacity={0.22} vertical={false} />
+                                    <XAxis dataKey="periodo" tickLine={false} axisLine={false} fontSize={12} />
+                                    <YAxis tickLine={false} axisLine={false} fontSize={12} width={72} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: 14,
+                                            border: '1px solid var(--border)',
+                                            background: 'var(--popover)',
+                                            color: 'var(--popover-foreground)',
+                                        }}
+                                        formatter={(value, name) => {
+                                            const numericValue = Number(value);
+                                            const seriesName = String(name);
+
+                                            return [
+                                                seriesName === 'ventas'
+                                                    ? currency.format(numericValue)
+                                                    : number.format(numericValue),
+                                                seriesName === 'ventas'
+                                                    ? 'Ventas'
+                                                    : seriesName === 'usuarios'
+                                                      ? 'Usuarios'
+                                                      : 'Negocios',
+                                            ];
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="ventas"
+                                        stroke="#ef4444"
+                                        fill="url(#ventasAdmin)"
+                                        strokeWidth={3}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="usuarios"
+                                        stroke="#8b5cf6"
+                                        fill="transparent"
+                                        strokeWidth={2}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="negocios"
+                                        stroke="#06b6d4"
+                                        fill="transparent"
+                                        strokeWidth={2}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Layers3 className="h-5 w-5 text-primary" />
+                                Distribución por plan
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">Negocios activos en cada nivel comercial.</p>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            {distribucionPlanes.map((plan) => (
+                                <div key={plan.id}>
+                                    <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{plan.nombre}</span>
+                                            {plan.slug === 'premium' && <Sparkles className="h-3.5 w-3.5 text-primary" />}
+                                        </div>
+                                        <span className="font-semibold">{plan.negocios}</span>
+                                    </div>
+                                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${(plan.negocios / maxPlanBusinesses) * 100}%` }}
+                                            transition={{ duration: 0.7 }}
+                                            className="h-full rounded-full bg-primary"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+
+                            {distribucionPlanes.length === 0 && (
+                                <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                                    Todavía no hay planes activos para mostrar.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
+
+                <section>
+                    <div className="mb-4">
+                        <h2 className="text-xl font-semibold">Operación central</h2>
+                        <p className="text-sm text-muted-foreground">Accesos directos a los módulos estratégicos.</p>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {modules.map((module, index) => (
+                            <motion.div
+                                key={module.title}
+                                custom={index}
+                                variants={fadeUp}
+                                initial="hidden"
+                                animate="visible"
+                                whileHover={{ y: -3 }}
+                            >
+                                <Card className="group h-full overflow-hidden">
+                                    <CardContent className="flex h-full flex-col p-5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="rounded-2xl bg-muted p-3 text-foreground transition group-hover:bg-primary/10 group-hover:text-primary">
+                                                <module.icon className="h-5 w-5" />
+                                            </div>
+                                            <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
+                                        </div>
+                                        <h3 className="mt-5 font-semibold">{module.title}</h3>
+                                        <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
+                                            {module.description}
+                                        </p>
+                                        <Button asChild variant="outline" className="mt-5 w-full">
+                                            <Link href={module.href}>Abrir módulo</Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="grid gap-6 xl:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-primary" />
+                                Nuevos negocios
+                            </CardTitle>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href={route('negocios.index')}>Ver todos</Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {negociosRecientes.map((negocio) => (
+                                <div key={negocio.id} className="rounded-2xl border p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium">{negocio.nombre_comercial}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {negocio.rubro || 'Rubro sin especificar'} · {negocio.usuarios_activos_count} usuario(s)
+                                            </p>
+                                        </div>
+                                        <Badge variant={negocio.plan?.slug === 'premium' ? 'default' : 'secondary'}>
+                                            {negocio.plan?.nombre || 'Sin plan'}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            ))}
+                            {negociosRecientes.length === 0 && (
+                                <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                                    Todavía no se registraron negocios.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <ReceiptText className="h-5 w-5 text-primary" />
+                                Pagos pendientes
+                            </CardTitle>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href={route('pagos-suscripciones.index')}>Gestionar</Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {pagosPendientes.map((pago) => (
+                                <div key={pago.id} className="flex items-center justify-between gap-3 rounded-2xl border p-4">
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium">{pago.negocio?.nombre_comercial || 'Negocio'}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {pago.plan?.nombre || 'Plan'} · {new Date(pago.created_at).toLocaleDateString('es-AR')}
+                                        </p>
+                                    </div>
+                                    <p className="whitespace-nowrap font-semibold text-primary">
+                                        {currency.format(pago.monto)}
+                                    </p>
+                                </div>
+                            ))}
+                            {pagosPendientes.length === 0 && (
+                                <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                                    No hay pagos pendientes de revisión.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <Headphones className="h-5 w-5 text-primary" />
+                                Últimos tickets
+                            </CardTitle>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href={route('tickets.index')}>Ver soporte</Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {ticketsRecientes.map((ticket) => (
+                                <div key={ticket.id} className="rounded-2xl border p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{ticket.asunto}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {[ticket.usuario_nombre, ticket.usuario_apellido].filter(Boolean).join(' ') || 'Usuario'}
+                                            </p>
+                                        </div>
+                                        <Badge variant={ticket.prioridad === 'alta' ? 'destructive' : 'secondary'}>
+                                            {ticket.prioridad}
+                                        </Badge>
+                                    </div>
+                                    <p className="mt-3 text-xs text-muted-foreground">{statusLabel(ticket.estado)}</p>
+                                </div>
+                            ))}
+                            {ticketsRecientes.length === 0 && (
+                                <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                                    No hay tickets recientes.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
+        </AppLayout>
+    );
 }

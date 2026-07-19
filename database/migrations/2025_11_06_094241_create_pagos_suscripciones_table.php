@@ -4,22 +4,28 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-    public function up(): void {
+return new class extends Migration
+{
+    public function up(): void
+    {
         Schema::create('pagos_suscripciones', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')
-                ->constrained('users')
-                ->cascadeOnDelete();
+            // Todo pago de un plan corresponde obligatoriamente a un negocio.
+            $table->foreignId('negocio_id')
+                ->constrained('negocios')
+                ->restrictOnDelete();
 
+            // Plan solicitado o abonado para el negocio.
             $table->foreignId('plan_id')
                 ->constrained('planes')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
 
-            $table->foreignId('negocio_id')
+            // Usuario que inició o registró el pago. Se conserva el historial
+            // aunque esa cuenta deje de existir.
+            $table->foreignId('user_id')
                 ->nullable()
-                ->constrained('negocios')
+                ->constrained('users')
                 ->nullOnDelete();
 
             $table->decimal('monto', 12, 2);
@@ -28,32 +34,32 @@ return new class extends Migration {
             $table->date('periodo_inicio');
             $table->date('periodo_fin');
 
-            $table->enum('estado', ['pendiente','aprobado','rechazado'])
+            $table->enum('estado', ['pendiente', 'aprobado', 'rechazado'])
                 ->default('pendiente');
 
-            // Método agnóstico
             $table->enum('metodo_pago', [
-                'mercadopago','transferencia','efectivo','tarjeta','otro'
+                'mercadopago',
+                'transferencia',
+                'efectivo',
+                'tarjeta',
+                'otro',
             ])->default('otro');
 
-            // Identificador universal (operación, comprobante, referencia externa)
             $table->string('referencia_pago')->nullable();
-
-            // Datos específicos del proveedor (ej: MP payment_id, status_detail, etc.)
             $table->json('datos_pago')->nullable();
-
-            // Auditoría de aprobación
             $table->timestamp('aprobado_at')->nullable();
 
             $table->timestamps();
 
-            $table->index(['user_id', 'plan_id', 'estado']);
-            $table->index(['metodo_pago', 'estado']);
             $table->index(['negocio_id', 'estado']);
+            $table->index(['plan_id', 'estado']);
+            $table->index(['user_id', 'estado']);
+            $table->index(['metodo_pago', 'estado']);
         });
     }
 
-    public function down(): void {
+    public function down(): void
+    {
         Schema::dropIfExists('pagos_suscripciones');
     }
 };

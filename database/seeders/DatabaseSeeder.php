@@ -2,126 +2,99 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use App\Models\User;
-use App\Models\Plan;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::transaction(function () {
+        $this->call([
+            PlanSeeder::class,
+            RolesAndPermissionsSeeder::class,
+        ]);
 
-            // =====================================================
-            // 📦 SEEDERS BASE
-            // =====================================================
-            $this->call([
-                PlanSeeder::class,
-                RolesAndPermissionsSeeder::class,
-            ]);
+        $usuariosBase = [
+            [
+                'username' => 'admin',
+                'nombre' => 'Andrés',
+                'apellido' => 'Ruchinsky',
+                'dni' => '28000001',
+                'email' => 'admin@vendra.test',
+                'rol' => 'admin',
+            ],
+            [
+                'username' => 'premium',
+                'nombre' => 'Carla',
+                'apellido' => 'Gómez',
+                'dni' => '30000001',
+                'email' => 'premium@vendra.test',
+                'rol' => 'usuario',
+            ],
+            [
+                'username' => 'free',
+                'nombre' => 'Luis',
+                'apellido' => 'Pérez',
+                'dni' => '30000002',
+                'email' => 'free@vendra.test',
+                'rol' => 'usuario',
+            ],
+            [
+                'username' => 'soporte',
+                'nombre' => 'Sofía',
+                'apellido' => 'Torres',
+                'dni' => '29000001',
+                'email' => 'soporte@vendra.test',
+                'rol' => 'soporte',
+            ],
+        ];
 
-            // =====================================================
-            // 🌐 CUENTAS BASE
-            // =====================================================
-            $planFree = \App\Models\Plan::where('slug', 'free')->first();
-            $planPremium = \App\Models\Plan::where('slug', 'premium')->first();
-
-            $usuariosBase = [
+        foreach ($usuariosBase as $data) {
+            $user = User::updateOrCreate(
+                ['email' => $data['email']],
                 [
-                    'username' => 'admin',
-                    'nombre' => 'Andrés',
-                    'apellido' => 'Ruchinsky',
-                    'email' => 'admin@vendra.test',
-                    'rol' => 'admin',
-                    'plan_id' => $planPremium->id,
-                ],
+                    'username' => $data['username'],
+                    'nombre' => $data['nombre'],
+                    'apellido' => $data['apellido'],
+                    'dni' => $data['dni'],
+                    'telefono' => '3704000000',
+                    'domicilio' => 'Formosa, Argentina',
+                    'password' => Hash::make('12345678'),
+                    'estado' => 'activo',
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            $user->syncRoles([$data['rol']]);
+        }
+
+        for ($i = 1; $i <= 10; $i++) {
+            $numero = sprintf('%02d', $i);
+
+            $user = User::updateOrCreate(
+                ['email' => "usuario{$numero}@vendra.test"],
                 [
-                    'username' => 'premium',
-                    'nombre' => 'Carla',
-                    'apellido' => 'Gómez',
-                    'email' => 'premium@vendra.test',
-                    'rol' => 'comerciante_premium',
-                    'plan_id' => $planPremium->id,
-                ],
-                [
-                    'username' => 'free',
-                    'nombre' => 'Luis',
-                    'apellido' => 'Pérez',
-                    'email' => 'free@vendra.test',
-                    'rol' => 'comerciante_free',
-                    'plan_id' => $planFree->id,
-                ],
-                [
-                    'username' => 'soporte',
-                    'nombre' => 'Sofía',
-                    'apellido' => 'Torres',
-                    'email' => 'soporte@vendra.test',
-                    'rol' => 'soporte',
-                    'plan_id' => $planFree->id,
-                ],
-            ];
+                    'username' => "usuario{$numero}",
+                    'nombre' => 'Usuario',
+                    'apellido' => "Demo {$numero}",
+                    'dni' => (string) (32000000 + $i),
+                    'telefono' => '3704000000',
+                    'domicilio' => 'Formosa, Argentina',
+                    'password' => Hash::make('12345678'),
+                    'estado' => 'activo',
+                    'email_verified_at' => now(),
+                ]
+            );
 
-            foreach ($usuariosBase as $data) {
-                $user = User::firstOrCreate(
-                    ['email' => $data['email']],
-                    [
-                        'username' => $data['username'],
-                        'nombre' => $data['nombre'],
-                        'apellido' => $data['apellido'],
-                        'dni' => fake()->unique()->numerify('########'),
-                        'telefono' => fake()->phoneNumber(),
-                        'domicilio' => fake()->address(),
-                        'password' => Hash::make('12345678'),
-                        'estado' => 'activo',
-                        'plan_id' => $data['plan_id'],
-                    ]
-                );
+            $user->syncRoles(['usuario']);
+        }
 
-                $user->assignRole($data['rol']);
-            }
+        $this->call([
+            NegocioSeeder::class,
+            CategoriaSeeder::class,
+        ]);
 
-            // =====================================================
-            // 👨‍💻 USUARIOS DEMO ADICIONALES
-            // =====================================================
-            for ($i = 1; $i <= 10; $i++) {
-                $nombre = fake()->firstName();
-                $apellido = fake()->lastName();
-                $username = Str::slug($nombre . $apellido . $i);
-                $rol = $i <= 5 ? 'comerciante_free' : 'comerciante_premium';
-                $plan = $i <= 5 ? $planFree : $planPremium;
-
-                $usuario = User::firstOrCreate(
-                    ['email' => "{$username}@vendra.test"],
-                    [
-                        'username' => $username,
-                        'nombre' => $nombre,
-                        'apellido' => $apellido,
-                        'dni' => fake()->unique()->numerify('########'),
-                        'telefono' => fake()->phoneNumber(),
-                        'domicilio' => fake()->address(),
-                        'password' => Hash::make('12345678'),
-                        'estado' => 'activo',
-                        'email_verified_at' => now(),
-                        'remember_token' => Str::random(10),
-                        'plan_id' => $plan->id,
-                    ]
-                );
-
-                $usuario->assignRole($rol);
-            }
-
-            // =====================================================
-            // 🏪 NEGOCIOS Y CATEGORÍAS
-            // =====================================================
-            $this->call([
-                NegocioSeeder::class,
-                CategoriaSeeder::class,
-            ]);
-
-            $this->command->info('✅ Sistema Vendra poblado con Planes, Roles, Usuarios, Negocios y Categorías.');
-        });
+        $this->command?->info('Vendra poblado con planes, roles, usuarios, negocios y categorías demo.');
     }
 }

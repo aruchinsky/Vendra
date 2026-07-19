@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NegocioController;
+use App\Http\Controllers\NegocioUserController;
+use App\Http\Controllers\PagoSuscripcionController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ReporteController;
@@ -21,49 +22,70 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
-    // --- Dashboard principal ---
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
+    Route::get('dashboard/negocios', [DashboardController::class, 'negocios'])
+        ->name('dashboard.negocios');
+    Route::post(
+        'dashboard/negocios/{negocio}/seleccionar',
+        [DashboardController::class, 'seleccionarNegocio']
+    )->name('dashboard.negocio.seleccionar');
 
     Route::resource('categorias', CategoriaController::class);
-    // --- Módulo Negocios ---
     Route::resource('negocios', NegocioController::class);
-    // --- Módulo Planes ---
-    Route::resource('planes', PlanController::class);
-    // --- Módulo Planes ---
-    Route::resource('planes', PlanController::class);
-    // --- Módulo de Reportes ---
     Route::resource('reportes', ReporteController::class);
-    // --- Módulo de Tickets ---
     Route::resource('tickets', TicketController::class);
-    // --- Módulo de Productos ---
     Route::resource('productos', ProductoController::class);
-    // --- Módulo de Clientes ---
     Route::resource('clientes', ClienteController::class);
-    // --- Módulo de Ventas ---
     Route::resource('ventas', VentaController::class);
 
+    Route::prefix('negocios/{negocio}')
+        ->name('negocios.')
+        ->group(function () {
+            Route::get('usuarios', [NegocioUserController::class, 'index'])
+                ->name('usuarios.index');
+            Route::post('usuarios', [NegocioUserController::class, 'store'])
+                ->name('usuarios.store');
+            Route::put('usuarios/{user}', [NegocioUserController::class, 'update'])
+                ->name('usuarios.update');
+            Route::delete('usuarios/{user}', [NegocioUserController::class, 'destroy'])
+                ->name('usuarios.destroy');
+        });
+
+    Route::get('pagos-suscripciones', [PagoSuscripcionController::class, 'index'])
+        ->name('pagos-suscripciones.index');
+    Route::get('pagos-suscripciones/create', [PagoSuscripcionController::class, 'create'])
+        ->name('pagos-suscripciones.create');
+    Route::post('pagos-suscripciones', [PagoSuscripcionController::class, 'store'])
+        ->name('pagos-suscripciones.store');
 });
 
-Route::middleware(['auth', 'verified', 'role:admin'])->group(function (){
-    //roles
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
+    Route::resource('planes', PlanController::class);
+
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
-    Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
     Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
     Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+    Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
 
-    //permisos
-    Route::get('/users/roles', [UserRoleController::class, 'index'])->name('users.roles.index');
-    Route::put('/users/roles', [UserRoleController::class, 'update'])->name('users.roles.update');
+    Route::get('/users/roles', [UserRoleController::class, 'index'])
+        ->name('users.roles.index');
+    Route::put('/users/roles', [UserRoleController::class, 'update'])
+        ->name('users.roles.update');
 
     Route::resource('users', UserController::class);
 
-    // Registro habilitado solo para admin
-    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('/register', [RegisteredUserController::class, 'store']);
-});
+    Route::patch(
+        'pagos-suscripciones/{pagoSuscripcion}/aprobar',
+        [PagoSuscripcionController::class, 'aprobar']
+    )->name('pagos-suscripciones.aprobar');
 
+    Route::patch(
+        'pagos-suscripciones/{pagoSuscripcion}/rechazar',
+        [PagoSuscripcionController::class, 'rechazar']
+    )->name('pagos-suscripciones.rechazar');
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
