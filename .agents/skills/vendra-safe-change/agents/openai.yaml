@@ -1,0 +1,7 @@
+interface:
+  display_name: "Vendra Safe Change"
+  short_description: "Cambios controlados y validados en Vendra"
+  brand_color: "#FF3B30"
+  default_prompt: "Aplicá el flujo de cambio seguro de Vendra a esta tarea."
+policy:
+  allow_implicit_invocation: true
