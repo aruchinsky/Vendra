@@ -71,6 +71,7 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
             {},
             {
                 preserveScroll: true,
+                onSuccess: () => setOpen(false),
                 onFinish: () => setProcessingId(null),
             },
         );
@@ -85,6 +86,7 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
         setProcessingId('global');
         router.delete(route('dashboard.negocio.limpiar'), {
             preserveScroll: true,
+            onSuccess: () => setOpen(false),
             onFinish: () => setProcessingId(null),
         });
     };
@@ -97,7 +99,7 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover open={open} onOpenChange={setOpen} modal={isMobile}>
                     <PopoverTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
@@ -130,18 +132,18 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
                     </PopoverTrigger>
 
                     <PopoverContent
-                        className="w-[min(22rem,calc(100vw-2rem))] p-0"
+                        className="w-[min(22rem,calc(100vw-2rem))] p-0 max-md:max-h-[calc(var(--radix-popover-content-available-height)-0.5rem)] max-md:overflow-hidden"
                         align="start"
                         side={isMobile ? 'bottom' : state === 'collapsed' ? 'right' : 'bottom'}
                         sideOffset={8}
                     >
-                        <Command>
+                        <Command className="max-md:h-auto max-md:max-h-[calc(var(--radix-popover-content-available-height)-0.5rem)]">
                             <CommandInput placeholder="Buscar negocio..." />
-                            <CommandList>
+                            <CommandList className="max-md:flex max-md:min-h-0 max-md:max-h-none max-md:flex-1 max-md:flex-col max-md:overflow-hidden">
                                 <CommandEmpty>No encontramos un negocio con ese nombre.</CommandEmpty>
 
                                 {auth.es_admin_global && (
-                                    <CommandGroup heading="Contexto de trabajo">
+                                    <CommandGroup heading="Contexto de trabajo" className="max-md:shrink-0">
                                         <CommandItem
                                             value="entorno global administracion vendra"
                                             onSelect={selectGlobalContext}
@@ -169,7 +171,10 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
                                 {auth.es_admin_global && orderedBusinesses.length > 0 && <CommandSeparator />}
 
                                 {orderedBusinesses.length > 0 ? (
-                                    <CommandGroup heading={auth.es_admin_global ? 'Negocios activos' : 'Tus negocios'}>
+                                    <CommandGroup
+                                        heading={auth.es_admin_global ? 'Negocios activos' : 'Tus negocios'}
+                                        className="max-md:min-h-0 max-md:flex-1 max-md:touch-pan-y max-md:overflow-y-auto max-md:overscroll-contain max-md:[-webkit-overflow-scrolling:touch]"
+                                    >
                                         {orderedBusinesses.map((business) => {
                                         const isActive = activeBusiness?.id === business.id;
                                         const isBusinessAdmin = auth.es_admin_global || Boolean(business.pivot?.es_administrador);
@@ -213,7 +218,7 @@ export function BusinessSwitcher({ auth }: BusinessSwitcherProps) {
                                 )}
 
                                 <CommandSeparator />
-                                <CommandGroup heading="Acciones">
+                                <CommandGroup heading="Acciones" className="max-md:shrink-0">
                                     {auth.es_usuario_negocio && (
                                         <CommandItem onSelect={() => navigate(route('negocios.create'))} className="gap-3 py-2.5">
                                             <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
