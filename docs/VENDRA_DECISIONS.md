@@ -55,4 +55,4 @@ No inventar CRUD. Mientras se definen Productos, Clientes, Ventas y Reportes, la
 
 ## D-013 — Cambios controlados con Git
 
-`main` representa la línea estable. Todo trabajo nuevo debe realizarse en ramas de corta duración y revisarse mediante diff y pruebas antes de integrar.
+`main` representa la línea estable y no se usa para desarrollo directo. `codex-ui` es la rama de integración para los trabajos de interfaz realizados con Codex. Todo cambio se desarrolla en una rama temporal independiente y sólo puede limpiarse, con autorización explícita, después de revisión, validación, publicación remota e integración validada en `codex-ui`. Se usa borrado seguro con `git branch -d`; los tags se reservan para puntos estables o versiones relevantes.

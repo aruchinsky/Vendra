@@ -40,10 +40,28 @@ Para tareas de backend también leer `app/AGENTS.md`. Para tareas de React/Inert
 - No modificar `.env`, secretos, credenciales ni datos reales.
 - No ejecutar comandos destructivos o irreversibles sin aprobación explícita.
 - No hacer commit, merge, rebase, push, tag ni abrir PR sin solicitud explícita.
-- No trabajar directamente sobre `main` para nuevas correcciones o funcionalidades. Usar una rama `fix/*`, `feature/*` o `refactor/*`.
+- No trabajar directamente sobre `main` para nuevas correcciones o funcionalidades.
 - No usar `git reset --hard`, `git clean`, `migrate:fresh`, `db:wipe`, `composer update` ni `npm audit fix` sin autorización explícita.
 - No eliminar archivos legado solo porque parezcan obsoletos; primero demostrar que no tienen referencias activas.
 - Mantener documentación y tests sincronizados con cualquier cambio de comportamiento.
+
+## Política Git permanente
+
+- `main` es la rama estable y no se usa para desarrollo directo.
+- `codex-ui` es la rama de integración para los trabajos de interfaz realizados con Codex.
+- Cada corrección o funcionalidad debe realizarse en una rama temporal independiente, por ejemplo `fix/*`, `feat/*` o `codex/*`.
+- Una rama temporal sólo puede eliminarse después de que:
+  1. sus cambios hayan sido revisados;
+  2. build y pruebas hayan finalizado correctamente;
+  3. el commit haya sido subido al remoto;
+  4. el cambio haya sido integrado en `codex-ui`;
+  5. `codex-ui` haya sido validada y subida al remoto.
+- Después de cumplir todas esas condiciones, eliminar la rama temporal localmente con `git branch -d <rama>` y en GitHub con `git push origin --delete <rama>`.
+- Usar `git branch -D` únicamente con autorización explícita para descartar trabajo no integrado.
+- Ejecutar `git fetch origin --prune` después de limpiar las ramas local y remota.
+- No eliminar nunca `main`, `codex-ui` ni una rama que contenga trabajo todavía no integrado.
+- No crear tags para cada fix. Reservarlos para puntos estables o versiones relevantes.
+- Codex no debe eliminar ramas por cuenta propia: debe informar que una rama ya cumple las condiciones de limpieza y esperar autorización explícita.
 
 ## Validación mínima antes de declarar una tarea terminada
 
