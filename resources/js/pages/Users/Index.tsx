@@ -30,7 +30,8 @@ type Props = PageProps & {
 };
 
 export default function Index() {
-    const { users } = usePage<Props>().props;
+    const { users, auth } = usePage<Props>().props;
+    const canManageUsers = Boolean(auth?.es_admin_global);
     const normalizedUsers = normalizePaginatedData<UserWithRoles>(users);
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -81,31 +82,35 @@ export default function Index() {
             header: 'Negocios',
             cell: ({ row }) => row.original.negocios?.length ?? 0,
         },
-        {
-            id: 'actions',
-            header: 'Acciones',
-            cell: ({ row }) => (
-                <div className="flex gap-2">
-                    <Link href={route('users.edit', row.original.id)}>
-                        <Button size="sm" variant="default" aria-label="Editar usuario">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        aria-label="Desactivar usuario"
-                        disabled={row.original.estado === 'inactivo'}
-                        onClick={() => {
-                            setRecordIdToDeactivate(row.original.id);
-                            setIsDialogOpen(true);
-                        }}
-                    >
-                        <UserRoundX className="h-4 w-4" />
-                    </Button>
-                </div>
-            ),
-        },
+        ...(canManageUsers
+            ? [
+                  {
+                      id: 'actions',
+                      header: 'Acciones',
+                      cell: ({ row }: { row: { original: UserWithRoles } }) => (
+                          <div className="flex gap-2">
+                              <Link href={route('users.edit', row.original.id)}>
+                                  <Button size="sm" variant="default" aria-label="Editar usuario">
+                                      <Pencil className="h-4 w-4" />
+                                  </Button>
+                              </Link>
+                              <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  aria-label="Desactivar usuario"
+                                  disabled={row.original.estado === 'inactivo'}
+                                  onClick={() => {
+                                      setRecordIdToDeactivate(row.original.id);
+                                      setIsDialogOpen(true);
+                                  }}
+                              >
+                                  <UserRoundX className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      ),
+                  } satisfies ColumnDef<UserWithRoles>,
+              ]
+            : []),
     ];
 
     const handleSearch = useCallback((searchTerm: string) => {
@@ -138,14 +143,18 @@ export default function Index() {
                     <div>
                         <h1 className="text-2xl font-bold">Usuarios</h1>
                         <p className="text-muted-foreground text-sm">
-                            Administración global de cuentas y roles de Vendra.
+                            {canManageUsers
+                                ? 'Administración global de cuentas y roles de Vendra.'
+                                : 'Consulta de cuentas para brindar soporte a los usuarios.'}
                         </p>
                     </div>
-                    <Link href={route('users.create')}>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Crear usuario
-                        </Button>
-                    </Link>
+                    {canManageUsers && (
+                        <Link href={route('users.create')}>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Crear usuario
+                            </Button>
+                        </Link>
+                    )}
                 </div>
 
                 <DataTable

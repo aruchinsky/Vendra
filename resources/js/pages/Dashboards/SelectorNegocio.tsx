@@ -41,10 +41,11 @@ type Props = PageProps & {
     user: User;
     negocioActivoId?: number | null;
     negocios: BusinessOption[];
+    esAdminGlobal?: boolean;
 };
 
 export default function SelectorNegocio() {
-    const { user, negocioActivoId, negocios } = usePage<Props>().props;
+    const { user, negocioActivoId, negocios, esAdminGlobal = false } = usePage<Props>().props;
     const [selectingId, setSelectingId] = useState<number | null>(null);
 
     const selectBusiness = (businessId: number) => {
@@ -174,30 +175,32 @@ export default function SelectorNegocio() {
                         })}
                     </div>
 
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="mt-8 flex flex-col items-center justify-between gap-4 rounded-3xl border border-dashed bg-card/55 p-5 sm:flex-row"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                                <Sparkles className="h-5 w-5" />
+                    {!esAdminGlobal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="mt-8 flex flex-col items-center justify-between gap-4 rounded-3xl border border-dashed bg-card/55 p-5 sm:flex-row"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                                    <Sparkles className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <p className="font-medium">¿Tenés otro emprendimiento?</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Podés crear otro espacio independiente dentro de tu cuenta.
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="font-medium">¿Tenés otro emprendimiento?</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Podés crear otro espacio independiente dentro de tu cuenta.
-                                </p>
-                            </div>
-                        </div>
-                        <Button asChild variant="outline">
-                            <Link href={route('negocios.create')}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Crear otro negocio
-                            </Link>
-                        </Button>
-                    </motion.div>
+                            <Button asChild variant="outline">
+                                <Link href={route('negocios.create')}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Crear otro negocio
+                                </Link>
+                            </Button>
+                        </motion.div>
+                    )}
                 </div>
             </div>
         </AppLayout>

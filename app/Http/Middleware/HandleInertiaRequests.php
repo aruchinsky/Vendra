@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\VendraContextService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -27,35 +28,30 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        // Frase aleatoria para propósitos visuales (puedes quitarla si no la usás)
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
         return [
             ...parent::share($request),
 
-            // Nombre de la aplicación
             'name' => config('app.name', 'Vendra'),
 
-            // Frase inspiradora opcional
             'quote' => [
                 'message' => trim($message),
                 'author' => trim($author),
             ],
 
-            // Información del usuario autenticado
-            'auth' => [
-                'user' => $request->user(),
-                'roles' => $request->user()?->getRoleNames() ?? [],
-                'permissions' => $request->user()?->getAllPermissions()->pluck('name') ?? [],
-            ],
+            /**
+             * El contexto se calcula de forma diferida y queda memorizado dentro
+             * de la solicitud por VendraContextService.
+             */
+            'auth' => fn (): array => app(VendraContextService::class)
+                ->sharedAuth($request),
 
-            // Configuración de rutas de Ziggy
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
 
-            // Mensajes flash
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

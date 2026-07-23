@@ -15,11 +15,17 @@ export interface NavGroup {
     items: NavItem[];
 }
 
+export type NavBadgeTone = "default" | "secondary" | "premium" | "muted";
+
 export interface NavItem {
     title: string;
     href: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    activePatterns?: string[];
+    badge?: string;
+    badgeTone?: NavBadgeTone;
+    disabled?: boolean;
 }
 
 /* =========================================================
@@ -120,14 +126,22 @@ export interface Auth {
     roles: string[];
     permissions: string[];
 
-    /** Negocios activos a los que pertenece el usuario autenticado. */
-    negocios?: NegocioConUserPivot[];
+    /** Negocios activos visibles para el usuario autenticado. */
+    negocios: NegocioConUserPivot[];
 
     /** Negocio seleccionado actualmente para operar dentro de Vendra. */
-    negocio_activo?: NegocioConUserPivot | null;
+    negocio_activo: NegocioConUserPivot | null;
 
-    /** Permiso técnico para administrar miembros, plan y configuración crítica. */
-    es_administrador_negocio?: boolean;
+    /** Plan correspondiente al negocio activo. */
+    plan_activo: Plan | null;
+
+    /** Indicadores globales resueltos por el backend. */
+    es_admin_global: boolean;
+    es_soporte: boolean;
+    es_usuario_negocio: boolean;
+    es_administrador_negocio: boolean;
+    cantidad_negocios: number;
+    puede_cambiar_negocio: boolean;
 }
 
 export interface SharedData {
@@ -283,6 +297,28 @@ export interface TicketSoporte {
     asignado?: User | null;
 }
 
+
+/* -------- TIPOS LEGADOS NO ENRUTADOS -------- */
+export type Speciality = string;
+
+export interface Customer {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    tickets_count?: number;
+}
+
+export interface Support {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    speciality: Speciality;
+    tickets_count?: number;
+}
+
 /* =========================================================
    Paginación y Respuestas
 ========================================================= */
@@ -359,6 +395,10 @@ export interface PageProps {
     clientes?: PaginatedData<Cliente> | Cliente[];
     ventas?: PaginatedData<Venta> | Venta[];
     tickets?: PaginatedData<TicketSoporte> | TicketSoporte[];
+    customers?: PaginatedData<Customer> | Customer[];
+    customer?: Customer;
+    supports?: PaginatedData<Support> | Support[];
+    support?: Support;
     roles?: PaginatedData<Role> | Role[];
     permissions?: Permission[];
 

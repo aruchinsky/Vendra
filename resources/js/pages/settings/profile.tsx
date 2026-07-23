@@ -1,7 +1,7 @@
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import type { FormEventHandler } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -12,115 +12,85 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: '/settings/profile',
-    },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Mi perfil', href: '/settings/profile' }];
 
 type ProfileForm = {
-    name: string;
+    nombre: string;
+    apellido: string;
+    username: string;
     email: string;
-}
+};
 
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
-        name: auth.user.name,
+    const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<ProfileForm>({
+        nombre: auth.user.nombre,
+        apellido: auth.user.apellido,
+        username: auth.user.username,
         email: auth.user.email,
     });
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-
-        patch(route('profile.update'), {
-            preserveScroll: true,
-        });
+    const submit: FormEventHandler = (event) => {
+        event.preventDefault();
+        patch(route('profile.update'), { preserveScroll: true });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Profile settings" />
-
+            <Head title="Mi perfil" />
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="Profile information" description="Update your name and email address" />
+                    <HeadingSmall title="Información personal" description="Actualizá tus datos de identificación y acceso." />
 
                     <form onSubmit={submit} className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
-
-                            <Input
-                                id="name"
-                                className="mt-1 block w-full"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                                autoComplete="name"
-                                placeholder="Full name"
-                            />
-
-                            <InputError className="mt-2" message={errors.name} />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="nombre">Nombre</Label>
+                                <Input id="nombre" value={data.nombre} onChange={(event) => setData('nombre', event.target.value)} required />
+                                <InputError message={errors.nombre} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="apellido">Apellido</Label>
+                                <Input id="apellido" value={data.apellido} onChange={(event) => setData('apellido', event.target.value)} required />
+                                <InputError message={errors.apellido} />
+                            </div>
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
+                            <Label htmlFor="username">Nombre de usuario</Label>
+                            <Input id="username" value={data.username} onChange={(event) => setData('username', event.target.value)} required />
+                            <InputError message={errors.username} />
+                        </div>
 
-                            <Input
-                                id="email"
-                                type="email"
-                                className="mt-1 block w-full"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                                autoComplete="username"
-                                placeholder="Email address"
-                            />
-
-                            <InputError className="mt-2" message={errors.email} />
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">Correo electrónico</Label>
+                            <Input id="email" type="email" value={data.email} onChange={(event) => setData('email', event.target.value)} required />
+                            <InputError message={errors.email} />
                         </div>
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
-                            <div>
-                                <p className="text-muted-foreground -mt-4 text-sm">
-                                    Your email address is unverified.{' '}
-                                    <Link
-                                        href={route('verification.send')}
-                                        method="post"
-                                        as="button"
-                                        className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                    >
-                                        Click here to resend the verification email.
-                                    </Link>
-                                </p>
-
+                            <div className="text-sm text-muted-foreground">
+                                Tu correo todavía no fue verificado.{' '}
+                                <Link href={route('verification.send')} method="post" as="button" className="underline underline-offset-4">
+                                    Reenviar verificación
+                                </Link>
                                 {status === 'verification-link-sent' && (
-                                    <div className="mt-2 text-sm font-medium text-green-600">
-                                        A new verification link has been sent to your email address.
-                                    </div>
+                                    <p className="mt-2 font-medium text-emerald-600">Enviamos un nuevo enlace de verificación.</p>
                                 )}
                             </div>
                         )}
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={processing}>Save</Button>
-
-                            <Transition
-                                show={recentlySuccessful}
-                                enter="transition ease-in-out"
-                                enterFrom="opacity-0"
-                                leave="transition ease-in-out"
-                                leaveTo="opacity-0"
-                            >
-                                <p className="text-sm text-neutral-600">Saved</p>
+                            <Button disabled={processing}>Guardar cambios</Button>
+                            <Transition show={recentlySuccessful} enter="transition ease-in-out" enterFrom="opacity-0" leave="transition ease-in-out" leaveTo="opacity-0">
+                                <p className="text-sm text-muted-foreground">Guardado</p>
                             </Transition>
                         </div>
                     </form>
-                </div>
 
-                <DeleteUser />
+                    <DeleteUser />
+                </div>
             </SettingsLayout>
         </AppLayout>
     );

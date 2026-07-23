@@ -22,25 +22,39 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    /* =========================================================
+       Dashboard y contexto comercial
+    ========================================================= */
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
+
     Route::get('dashboard/negocios', [DashboardController::class, 'negocios'])
+        ->middleware('role:admin|usuario')
         ->name('dashboard.negocios');
+
     Route::post(
         'dashboard/negocios/{negocio}/seleccionar',
         [DashboardController::class, 'seleccionarNegocio']
-    )->name('dashboard.negocio.seleccionar');
+    )
+        ->middleware('role:admin|usuario')
+        ->name('dashboard.negocio.seleccionar');
 
-    Route::resource('categorias', CategoriaController::class);
-    Route::resource('negocios', NegocioController::class);
-    Route::resource('reportes', ReporteController::class);
-    Route::resource('tickets', TicketController::class);
-    Route::resource('productos', ProductoController::class);
-    Route::resource('clientes', ClienteController::class);
-    Route::resource('ventas', VentaController::class);
+    Route::delete(
+        'dashboard/negocio/seleccion',
+        [DashboardController::class, 'limpiarNegocio']
+    )
+        ->middleware('role:admin')
+        ->name('dashboard.negocio.limpiar');
+
+    /* =========================================================
+       Negocios y membresías
+    ========================================================= */
+    Route::resource('negocios', NegocioController::class)
+        ->middleware('role:admin|usuario');
 
     Route::prefix('negocios/{negocio}')
         ->name('negocios.')
+        ->middleware('role:admin|usuario')
         ->group(function () {
             Route::get('usuarios', [NegocioUserController::class, 'index'])
                 ->name('usuarios.index');
@@ -52,12 +66,77 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('usuarios.destroy');
         });
 
-    Route::get('pagos-suscripciones', [PagoSuscripcionController::class, 'index'])
-        ->name('pagos-suscripciones.index');
-    Route::get('pagos-suscripciones/create', [PagoSuscripcionController::class, 'create'])
-        ->name('pagos-suscripciones.create');
-    Route::post('pagos-suscripciones', [PagoSuscripcionController::class, 'store'])
-        ->name('pagos-suscripciones.store');
+    /* =========================================================
+       Operación del negocio activo
+    ========================================================= */
+    Route::middleware(['role:admin|usuario', 'negocio.activo'])->group(function () {
+        Route::get('productos', [ProductoController::class, 'index'])
+            ->middleware('permission:ver productos')
+            ->name('productos.index');
+        Route::get('productos/create', [ProductoController::class, 'create'])
+            ->middleware('permission:crear productos')
+            ->name('productos.create');
+
+        Route::get('categorias', [CategoriaController::class, 'index'])
+            ->middleware('permission:ver categorias|ver productos')
+            ->name('categorias.index');
+        Route::post('categorias', [CategoriaController::class, 'store'])
+            ->middleware('permission:crear categorias|crear productos')
+            ->name('categorias.store');
+        Route::put('categorias/{categoria}', [CategoriaController::class, 'update'])
+            ->middleware('permission:editar categorias|editar productos')
+            ->name('categorias.update');
+        Route::delete('categorias/{categoria}', [CategoriaController::class, 'destroy'])
+            ->middleware('permission:eliminar categorias|eliminar productos')
+            ->name('categorias.destroy');
+
+        Route::get('clientes', [ClienteController::class, 'index'])
+            ->middleware('permission:ver clientes')
+            ->name('clientes.index');
+
+        Route::get('ventas', [VentaController::class, 'index'])
+            ->middleware('permission:ver ventas')
+            ->name('ventas.index');
+        Route::get('ventas/create', [VentaController::class, 'create'])
+            ->middleware('permission:crear ventas')
+            ->name('ventas.create');
+
+        Route::get('reportes', [ReporteController::class, 'index'])
+            ->middleware('permission:ver_basico reportes')
+            ->name('reportes.index');
+    });
+
+    /* =========================================================
+       Soporte
+    ========================================================= */
+    Route::get('tickets', [TicketController::class, 'index'])
+        ->middleware('permission:ver tickets')
+        ->name('tickets.index');
+    Route::get('tickets/create', [TicketController::class, 'create'])
+        ->middleware('permission:crear tickets')
+        ->name('tickets.create');
+    Route::post('tickets', [TicketController::class, 'store'])
+        ->middleware('permission:crear tickets')
+        ->name('tickets.store');
+
+    /* =========================================================
+       Suscripciones del negocio
+    ========================================================= */
+    Route::middleware('role:admin|usuario')->group(function () {
+        Route::get('pagos-suscripciones', [PagoSuscripcionController::class, 'index'])
+            ->name('pagos-suscripciones.index');
+        Route::get('pagos-suscripciones/create', [PagoSuscripcionController::class, 'create'])
+            ->name('pagos-suscripciones.create');
+        Route::post('pagos-suscripciones', [PagoSuscripcionController::class, 'store'])
+            ->name('pagos-suscripciones.store');
+    });
+
+    /* =========================================================
+       Consulta de usuarios para administración y soporte
+    ========================================================= */
+    Route::get('/users', [UserController::class, 'index'])
+        ->middleware(['role:admin|soporte', 'permission:ver usuarios'])
+        ->name('users.index');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
@@ -74,7 +153,11 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::put('/users/roles', [UserRoleController::class, 'update'])
         ->name('users.roles.update');
 
-    Route::resource('users', UserController::class);
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
     Route::patch(
         'pagos-suscripciones/{pagoSuscripcion}/aprobar',

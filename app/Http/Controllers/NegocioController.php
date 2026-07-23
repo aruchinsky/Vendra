@@ -41,7 +41,19 @@ class NegocioController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Negocios/Create');
+        return Inertia::render('Negocios/Create', [
+            'planFree' => Plan::query()
+                ->where('slug', 'free')
+                ->where('activo', true)
+                ->first([
+                    'id',
+                    'nombre',
+                    'slug',
+                    'limite_productos',
+                    'limite_ventas_mensuales',
+                    'limite_usuarios',
+                ]),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

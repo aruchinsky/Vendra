@@ -10,6 +10,7 @@ use App\Models\Producto;
 use App\Models\TicketSoporte;
 use App\Models\User;
 use App\Models\Venta;
+use App\Services\VendraContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +18,11 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly VendraContextService $contextService,
+    ) {
+    }
+
     public function index(Request $request): Response|RedirectResponse
     {
         /** @var User $user */
@@ -45,35 +51,44 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless($user->hasRole('usuario'), 403);
+        abort_unless($user->hasAnyRole(['admin', 'usuario']), 403);
 
-        $negocios = $this->negociosDisponibles($user);
+        $context = $this->contextService->resolve($request);
+        $negocios = $context['negocios'];
 
         if ($negocios->isEmpty()) {
             return redirect()->route('dashboard');
         }
 
-        return $this->renderSelectorNegocios($request, $user, $negocios);
+        return $this->renderSelectorNegocios(
+            $user,
+            $negocios,
+            $context['negocio_activo']?->id,
+            $context['es_admin_global'],
+        );
     }
 
     public function seleccionarNegocio(Request $request, Negocio $negocio): RedirectResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
-        abort_unless($user->hasRole('usuario'), 403);
-
-        $pertenece = $user->negociosActivos()
-            ->where('negocios.id', $negocio->id)
-            ->exists();
-
-        abort_unless($pertenece, 403, 'No tenés acceso a este negocio.');
-
-        $request->session()->put('negocio_activo_id', $negocio->id);
+        $this->contextService->seleccionarNegocio($request, $negocio);
 
         return redirect()
             ->route('dashboard')
             ->with('success', "Ahora estás gestionando {$negocio->nombre_comercial}.");
+    }
+
+    public function limpiarNegocio(Request $request): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        abort_unless($user->hasRole('admin'), 403);
+
+        $this->contextService->limpiarNegocioActivo($request);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', 'Volviste al entorno global de administración.');
     }
 
     private function dashboardAdministrador(User $user): Response
@@ -242,11 +257,11 @@ class DashboardController extends Controller
 
     private function dashboardUsuario(Request $request, User $user): Response
     {
-        $negocios = $this->negociosDisponibles($user);
+        $context = $this->contextService->resolve($request);
+        $negocios = $context['negocios'];
+        $negocioActivo = $context['negocio_activo'];
 
         if ($negocios->isEmpty()) {
-            $request->session()->forget('negocio_activo_id');
-
             return Inertia::render('Dashboards/UsuarioSinNegocio', [
                 'user' => $user,
                 'planFree' => Plan::query()
@@ -263,25 +278,20 @@ class DashboardController extends Controller
             ]);
         }
 
-        if ($negocios->count() === 1) {
-            /** @var Negocio $negocio */
-            $negocio = $negocios->first();
-            $request->session()->put('negocio_activo_id', $negocio->id);
-
-            return $this->dashboardNegocio($user, $negocio, 1);
-        }
-
-        $negocioActivoId = (int) $request->session()->get('negocio_activo_id', 0);
-        /** @var Negocio|null $negocioActivo */
-        $negocioActivo = $negocios->firstWhere('id', $negocioActivoId);
-
         if (! $negocioActivo) {
-            $request->session()->forget('negocio_activo_id');
-
-            return $this->renderSelectorNegocios($request, $user, $negocios);
+            return $this->renderSelectorNegocios(
+                $user,
+                $negocios,
+                null,
+                false,
+            );
         }
 
-        return $this->dashboardNegocio($user, $negocioActivo, $negocios->count());
+        return $this->dashboardNegocio(
+            $user,
+            $negocioActivo,
+            $context['cantidad_negocios'],
+        );
     }
 
     private function dashboardNegocio(User $user, Negocio $negocio, int $cantidadNegocios): Response
@@ -397,29 +407,26 @@ class DashboardController extends Controller
             'esAdministradorNegocio' => $negocio->esAdministrador($user->id),
         ];
 
+        // Se conservan los nombres de entrada históricos porque son las
+        // claves que Vite registra en el manifest. Estos componentes delegan
+        // internamente en UsuarioPremium y UsuarioFree.
         $vista = $plan?->slug === 'premium'
-            ? 'Dashboards/UsuarioPremium'
-            : 'Dashboards/UsuarioFree';
+            ? 'Dashboards/ComerciantePremium'
+            : 'Dashboards/ComercianteFree';
 
         return Inertia::render($vista, $props);
     }
 
-    private function negociosDisponibles(User $user)
-    {
-        return $user->negociosActivos()
-            ->with('plan')
-            ->withCount('usuariosActivos')
-            ->orderBy('nombre_comercial')
-            ->get();
-    }
-
-    private function renderSelectorNegocios(Request $request, User $user, $negocios): Response
-    {
-        $negocioActivoId = (int) $request->session()->get('negocio_activo_id', 0);
-
+    private function renderSelectorNegocios(
+        User $user,
+        $negocios,
+        ?int $negocioActivoId,
+        bool $esAdminGlobal,
+    ): Response {
         return Inertia::render('Dashboards/SelectorNegocio', [
             'user' => $user,
-            'negocioActivoId' => $negocioActivoId ?: null,
+            'negocioActivoId' => $negocioActivoId,
+            'esAdminGlobal' => $esAdminGlobal,
             'negocios' => $negocios->map(fn (Negocio $negocio) => [
                 'id' => $negocio->id,
                 'nombre_comercial' => $negocio->nombre_comercial,
@@ -427,7 +434,8 @@ class DashboardController extends Controller
                 'direccion' => $negocio->direccion,
                 'logo_path' => $negocio->logo_path,
                 'usuarios_activos_count' => $negocio->usuarios_activos_count,
-                'es_administrador' => (bool) $negocio->pivot?->es_administrador,
+                'es_administrador' => $esAdminGlobal
+                    || (bool) $negocio->pivot?->es_administrador,
                 'plan' => $negocio->plan ? [
                     'id' => $negocio->plan->id,
                     'nombre' => $negocio->plan->nombre,

@@ -2,150 +2,92 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
-use App\Models\Support;
-use App\Models\Ticket;
+use App\Models\TicketSoporte;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class TicketController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:view ticket')->only(['index']);
-        $this->middleware('permission:create ticket')->only(['create', 'store']);
-        $this->middleware('permission:edit ticket')->only(['edit', 'update']);
-        $this->middleware('permission:update ticket status')->only(['update']);
-        $this->middleware('permission:reopen ticket')->only(['update']);
-    }
     /**
-     * Display a listing of the resource.
+     * Lista tickets globalmente para administración/soporte y únicamente los
+     * propios para usuarios comerciales.
      */
-    /* public function index()
+    public function index(Request $request): Response
     {
-        $tickets = Ticket::with(['customer', 'support'])->latest()->paginate(10);
+        /** @var User $user */
+        $user = $request->user();
+        $search = trim((string) $request->query('search', ''));
+        $puedeGestionar = $user->hasAnyRole(['admin', 'soporte']);
+
+        $tickets = TicketSoporte::query()
+            ->with([
+                'usuario:id,nombre,apellido,email',
+                'asignado:id,nombre,apellido,email',
+            ])
+            ->when(! $puedeGestionar, fn ($query) => $query->where('user_id', $user->id))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('asunto', 'like', "%{$search}%")
+                        ->orWhere('descripcion', 'like', "%{$search}%")
+                        ->orWhere('estado', 'like', "%{$search}%")
+                        ->orWhere('prioridad', 'like', "%{$search}%")
+                        ->orWhereHas('usuario', function ($usuarioQuery) use ($search) {
+                            $usuarioQuery->where('nombre', 'like', "%{$search}%")
+                                ->orWhere('apellido', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('Tickets/Index', [
-            'tickets' => $tickets
-        ]);
-    } */
-
-    public function index(Request $request) {
-        $search = $request->query('search');
-
-        $tickets = Ticket::with(['customer', 'support'])
-                   ->when($search, function ($query, $search) {
-                        $query->where('description', 'like', "%{$search}%")
-                              ->orWhere('status', 'like', "%{$search}%")
-                              ->orWhereHas('customer', function ($q) use ($search) {
-                                    $q->where('name', 'like', "%{$search}%");
-                                })
-                                ->orWhereHas('support', function ($q) use ($search) {
-                                    $q->where('name', 'like', "%{$search}%");
-                                });
-                   })
-                   ->latest()
-                   ->paginate(10)
-                   ->withQueryString();
-
-         return Inertia::render('Tickets/Index', [
             'tickets' => $tickets,
-         ]);
-    }
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        $customers = Customer::select('id', 'name')->get();
-        $supports = Support::select('id', 'name')->get();
-
-        return Inertia::render('Tickets/Create', [
-            'customers' => $customers,
-            'supports' => $supports
+            'puede_crear_ticket' => $user->can('crear tickets'),
+            'puede_gestionar_tickets' => $puedeGestionar,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Muestra el formulario simplificado de creación de incidencias.
      */
-    public function store(Request $request)
+    public function create(): Response
     {
-        try {
-            $validated = $request->validate([
-                'customer_id' => 'required|exists:customers,id',
-                'support_id' => 'nullable|exists:supports,id',
-                'description' => 'required|string',
-                'status' => 'required|in:open,in progress,closed'
-            ]);
-            Ticket::create($validated);
-            return redirect()
-                ->route('tickets.index')
-                ->with('success', 'Registry created successfully!');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'An unexpected error occurred: ' . $e->getMessage());
-        }
+        return Inertia::render('Tickets/Create');
     }
 
     /**
-     * Display the specified resource.
+     * Registra un ticket asociado al usuario autenticado.
      */
-    public function show(string $id)
+    public function store(Request $request): RedirectResponse
     {
-        //
-    }
+        /** @var User $user */
+        $user = $request->user();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Ticket $ticket)
-    {
-        $customers = Customer::select('id', 'name')->get();
-        $supports = Support::select('id', 'name')->get();
-
-        return Inertia::render('Tickets/Edit', [
-            'ticket' => $ticket->load(['customer', 'support']),
-            'customers' => $customers,
-            'supports' => $supports
+        $validated = $request->validate([
+            'asunto' => 'required|string|max:255',
+            'descripcion' => 'required|string|max:5000',
+            'prioridad' => 'required|in:baja,media,alta',
         ]);
+
+        TicketSoporte::create([
+            'user_id' => $user->id,
+            'asignado_a' => null,
+            'asunto' => $validated['asunto'],
+            'descripcion' => $validated['descripcion'],
+            'prioridad' => $validated['prioridad'],
+            'estado' => 'abierto',
+        ]);
+
+        return redirect()
+            ->route('tickets.index')
+            ->with('success', 'Ticket creado correctamente. El equipo de soporte ya puede revisarlo.');
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Ticket $ticket)
-    {
-        try {
-            $validated = $request->validate([
-                //'customer_id' => 'required|exists:customers,id',
-                'support_id' => 'nullable|exists:supports,id',
-                'description' => 'required|string',
-                'status' => 'required|in:open,in progress,closed'
-            ]);
-
-            $ticket->update($validated);
-
-            return redirect()
-                ->route('tickets.index')
-                ->with('success', 'Record updated successfully!');
-        } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Could not update the record: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    /* public function destroy(Ticket $ticket)
-    {
-        try {
-            $ticket->delete();
-            return redirect()->route('tickets.index')->with('success', 'Registry deleted successfully');
-        } catch (\Exception $e) {
-            return redirect()
-            ->back()
-            ->with('error', 'Could not delete the record: ' . $e->getMessage());
-        }
-    } */
 }

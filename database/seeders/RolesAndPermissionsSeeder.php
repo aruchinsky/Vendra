@@ -17,6 +17,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Free/Premium ya no son roles: el plan del negocio habilita funciones.
         $modulos = [
             'productos' => ['ver', 'crear', 'editar', 'eliminar'],
+            'categorias' => ['ver', 'crear', 'editar', 'eliminar'],
             'clientes' => ['ver', 'crear', 'editar', 'eliminar'],
             'ventas' => ['ver', 'crear', 'editar', 'eliminar'],
             'reportes' => ['ver_basico', 'ver_avanzado'],
@@ -57,6 +58,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'crear productos',
             'editar productos',
             'eliminar productos',
+            'ver categorias',
+            'crear categorias',
+            'editar categorias',
+            'eliminar categorias',
             'ver clientes',
             'crear clientes',
             'editar clientes',
