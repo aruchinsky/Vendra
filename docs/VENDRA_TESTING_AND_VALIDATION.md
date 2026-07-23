@@ -29,11 +29,21 @@ php artisan test --filter=SidebarContextTest
 npm run types
 ```
 
+Este comando debe ejecutarse e informarse siempre. Mientras permanezca la deuda TypeScript preexistente, un resultado fallido puede considerarse temporalmente no bloqueante únicamente cuando se verifiquen las tres condiciones siguientes:
+
+1. todos los errores informados ya existían antes de la tarea;
+2. no aparecen errores nuevos;
+3. ningún error corresponde a un archivo modificado por la tarea.
+
+El resultado debe declararse como fallido aunque sea no bloqueante; nunca debe ocultarse ni presentarse como exitoso. Cuando se corrija la deuda TypeScript documentada, `npm run types` volverá a ser una validación bloqueante.
+
 ### Build
 
 ```bash
 npm run build
 ```
+
+El build, las pruebas aplicables, `git diff --check` y un working tree controlado son validaciones bloqueantes incluso mientras rija la excepción temporal de TypeScript.
 
 ### Formato y lint
 

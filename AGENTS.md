@@ -48,18 +48,25 @@ Para tareas de backend también leer `app/AGENTS.md`. Para tareas de React/Inert
 ## Política Git permanente
 
 - `main` es la rama estable y no se usa para desarrollo directo.
-- `codex-ui` es la rama de integración para los trabajos de interfaz realizados con Codex.
-- Cada corrección o funcionalidad debe realizarse en una rama temporal independiente, por ejemplo `fix/*`, `feat/*` o `codex/*`.
+- `codex/diagnostico-ux` es la rama permanente de integración para todos los trabajos realizados con Codex. No debe eliminarse al finalizar una tarea.
+- Solamente `main` y `codex/diagnostico-ux` deben permanecer como ramas permanentes, tanto localmente como en GitHub.
+- Cada corrección, funcionalidad o tarea documental debe realizarse en una rama temporal independiente creada desde `codex/diagnostico-ux` actualizada.
+- Las convenciones permitidas para ramas temporales son `fix/*`, `feat/*`, `docs/*`, `chore/*`, `refactor/*` y `test/*`.
+- Antes de crear una rama temporal: confirmar el working tree limpio, cambiar a `codex/diagnostico-ux`, actualizarla desde su upstream mediante fast-forward y confirmar que no esté detrás de `main`.
+- Cuando llegue una nueva tarea de desarrollo y la rama activa sea `codex/diagnostico-ux`, Codex debe realizar esas comprobaciones y crear automáticamente una rama temporal con el prefijo apropiado, sin pedir autorización adicional únicamente para crearla. Debe informar el nombre de la rama creada.
+- Codex nunca debe implementar una tarea directamente sobre `main` ni directamente sobre `codex/diagnostico-ux`.
+- Commit, push, integración, eliminación de ramas y operaciones destructivas continúan requiriendo autorización explícita.
 - Una rama temporal sólo puede eliminarse después de que:
   1. sus cambios hayan sido revisados;
   2. build y pruebas hayan finalizado correctamente;
   3. el commit haya sido subido al remoto;
-  4. el cambio haya sido integrado en `codex-ui`;
-  5. `codex-ui` haya sido validada y subida al remoto.
+  4. sus commits hayan sido integrados en `codex/diagnostico-ux`;
+  5. `codex/diagnostico-ux` haya sido validada y subida al remoto.
 - Después de cumplir todas esas condiciones, eliminar la rama temporal localmente con `git branch -d <rama>` y en GitHub con `git push origin --delete <rama>`.
 - Usar `git branch -D` únicamente con autorización explícita para descartar trabajo no integrado.
 - Ejecutar `git fetch origin --prune` después de limpiar las ramas local y remota.
-- No eliminar nunca `main`, `codex-ui` ni una rama que contenga trabajo todavía no integrado.
+- No eliminar nunca `main`, `codex/diagnostico-ux` ni una rama que contenga trabajo todavía no integrado.
+- Al completar una tarea o conjunto coherente de tareas, integrar `codex/diagnostico-ux` en `main`, preferentemente mediante fast-forward, y validar `main` antes de subirla.
 - No crear tags para cada fix. Reservarlos para puntos estables o versiones relevantes.
 - Codex no debe eliminar ramas por cuenta propia: debe informar que una rama ya cumple las condiciones de limpieza y esperar autorización explícita.
 
@@ -77,6 +84,8 @@ git status -sb
 ```
 
 Si alguna validación no puede ejecutarse, explicar exactamente cuál y por qué. No afirmar que una tarea está validada si no se ejecutaron los controles correspondientes.
+
+`npm run types` debe ejecutarse e informarse siempre. Mientras permanezca la deuda TypeScript documentada, un fallo puede considerarse temporalmente no bloqueante sólo si todos los errores son preexistentes, no aparecen errores nuevos y no existe ningún error en los archivos modificados por la tarea. El fallo debe informarse como tal, nunca ocultarse ni presentarse como exitoso. `npm run build`, las pruebas aplicables, `git diff --check` y un working tree controlado siguen siendo bloqueantes. Cuando se corrija la deuda TypeScript, `npm run types` volverá a ser bloqueante.
 
 ## Estado estable conocido
 
